@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1> Add courses you are teaching </h1>
+
+<form method="POST">
+{% csrf_token %}
+{{form.as_p}}
+
+<button type='submit'>Submit</button>
+
+<p> <a href="{% url 'teacher:teacher_add_course' %}"> Add one more course </a> </p>
+
+</form>
+{% endblock %}
+
+
+
+

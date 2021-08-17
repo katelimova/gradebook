@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+{% load static %}
+
+
+<html>
+    <head>
+        <title> {% block title %} Gradebook {% endblock %} </title>
+        <link rel="shortcut icon" href="{% static 'favicon.ico' %}"/>
+    </head>
+
+    <body>
+        {% block content %} 
+        
+        {% endblock %}
+    </body>
+
+</html>

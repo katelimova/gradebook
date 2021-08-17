@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<p> Let's create your account </p>
+
+<p> <a href="{% url 'student:student_signup' %}"> I'm a student </a> </p>
+
+<p> <a href="{% url 'teacher:teacher_signup' %}"> I'm a teacher </a> </p>
+
+
+<br>
+<p> Already Have An Account? <a href="{% url 'login'%}">Log In</a> </p>
+
+
+{% endblock %}
