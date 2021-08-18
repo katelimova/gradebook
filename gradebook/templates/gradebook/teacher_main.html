@@ -2,9 +2,15 @@
 
 {% block content %}
 
-<h1> Hi teacher {{user.first_name}} {{user.last_name}} . It's your profile </h1>
+<h1> Hi teacher {{user.first_name}} {{user.last_name}} </h1>
 
-<a href="{% url 'teacher:teacher_add_course' %}"> Add courses you are teaching </a>
+
+
+
+<p> <a href="{% url 'teacher:teacher_add_subject' %}"> Add your subjects </a>  </p>
+
+<p> <a href="{% url 'teacher:teacher_add_course' %}"> Add courses you are teaching </a>  </p>
+
 
 
 {% endblock %}

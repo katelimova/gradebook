@@ -2,10 +2,12 @@
 
 {% block content %}
 
-<h1> Add courses you are teaching </h1>
+<h1> Add courses you are teaching  </h1>
+
 
 <form method="POST">
 {% csrf_token %}
+
 {{form.as_p}}
 
 <button type='submit'>Submit</button>

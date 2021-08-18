@@ -19,7 +19,8 @@ urlpatterns = [
     path('teacher/', include(([
         path('signup/', teacher.signup, name='teacher_signup'),
         path('<slug:slug>', teacher.TeacherMainView.as_view(), name='teacher_main'),
-        path('course/add/', teacher.AddCoursesView.as_view(), name='teacher_add_course'),
+        path('course/add/', teacher.course_add, name='teacher_add_course'),
+        path('subject/add/', teacher.AddSubjectsView.as_view(), name='teacher_add_subject'),
     ], 'gradebook'), namespace = 'teacher')),
 
 ]
