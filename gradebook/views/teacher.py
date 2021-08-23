@@ -1,9 +1,10 @@
 from django.contrib.auth import login, authenticate
+from django.db.models.query import QuerySet
 from django.http.response import HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
 from django.db import models
 from django.http import request
-from django.views.generic import ListView, CreateView, DetailView
+from django.views.generic import ListView, CreateView, DetailView, TemplateView
 from django.views.generic.edit import FormView
 from gradebook.forms import RegistrationForm, AddCourseForm, AddSubjectForm, TeacherAddCourseForm
 from gradebook.models import Course, Subject, User, Teacher, Gradebook
@@ -11,6 +12,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.template.defaultfilters import slugify
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
+from itertools import chain
 
 
 def signup(request):
@@ -39,22 +41,17 @@ def signup(request):
         form = RegistrationForm()
     return render(request, 'registration/teacher_signup.html', {'form': form})
 
-
-class TeacherMainView(LoginRequiredMixin, ListView):
-    model = Teacher
+class TeacherMainView(LoginRequiredMixin, TemplateView):
     template_name = 'gradebook/teacher_main.html'
 
-    # def get(self, request):
-    #     teacher = Teacher.objects.filter(user=self.request.user).get()
-    #     subject_list = Gradebook.objects.filter(teacher = teacher).values_list('subject')
-        # subject_list = Gradebook.objects.select_related(user__teacher)
+    def get_context_data(self, **kwargs):
+        context_data = super().get_context_data(**kwargs)
+        teacher = Teacher.objects.filter(user=self.request.user)
+        subject_ids = Gradebook.objects.filter(teacher__in=teacher).values('subject_id')
+        context_data['subject_list'] = Subject.objects.filter(id__in=subject_ids)
+        return context_data
 
-        # {{forloop counter }} in templates 
-        # select_related --- try 
-
-        # return render(request, self.template_name, ctx)
-
-
+    
 class AddSubjectsView(LoginRequiredMixin, FormView):
     template_name = 'gradebook/teacher_add_subject.html'
     form_class = AddSubjectForm
@@ -97,13 +94,6 @@ def course_add(request):
                 course_record.course = course  
             except:
                 course_record = Gradebook.objects.get_or_create(subject=subject, teacher=teacher, course=course)[0]
-
-
-            # if not Gradebook.objects.filter(teacher=teacher, subject=subject, course=None).exists():
-            #     course_record = Gradebook.objects.get_or_create(subject=subject, teacher=teacher, course=course)[0]
-            # else:
-            #     course_record = Gradebook.objects.get(teacher=teacher, subject=subject, course=None)
-            #     course_record.course = course
             
             course_record.save()
             form.save_m2m()     
@@ -113,35 +103,4 @@ def course_add(request):
     else:
         form = TeacherAddCourseForm(request.user)
     return render(request, 'gradebook/teacher_add_course.html', {'form': form})
-
-
-
-
-# class AddCourseView(LoginRequiredMixin, FormView):
-#     template_name = 'gradebook/teacher_add_course.html'
-#     form_class = TeacherAddCourseForm
-
-#     def get_success_url(self):
-#         teacher = Teacher.objects.get(user=self.request.user)
-#         return reverse_lazy('teacher:teacher_main', args=[teacher.slug])
-
-#     def form_valid(self, form):
-#         course = form.save(commit=False)
-#         course = Course.objects.get_or_create(
-#         year=form.cleaned_data['year'],
-#         group=form.cleaned_data['group'],
-#         faculty=form.cleaned_data['faculty']
-#         )[0]
-#         course.save()
-#         subject = Subject.objects.get(pk=form.cleaned_data['subject'])
-#         teacher = Teacher.objects.get(user=self.request.user)
-
-#         if not Gradebook.objects.filter(teacher=teacher, subject=subject, course=None).exists():
-#             course_record = Gradebook.objects.get_or_create(subject=subject, teacher=teacher, course=course)[0]
-#         else:
-#             course_record = Gradebook.objects.get(teacher=teacher, subject=subject, course=None)
-#             course_record.course = course
-#         course_record.save()
-#         form.save_m2m()
-#         return super().form_valid(form)
 

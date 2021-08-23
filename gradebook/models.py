@@ -85,7 +85,7 @@ class Course(models.Model):
     year = models.PositiveIntegerField(choices=YEAR_OF_STUDY, default=1)
     group = models.PositiveIntegerField()
     def __str__(self):
-        return f'{self.year} year, {self.faculty}, {self.group} group'
+        return f'{self.year} year, {self.group} group, faculty of {self.faculty}'
 
 class Faculty(models.Model):
     faculty = models.CharField(max_length=100)
@@ -98,6 +98,12 @@ class Subject(models.Model):
     subject = models.CharField(max_length=100)
     def __str__(self):
         return self.subject
+
+    def subject_course(self):
+        subject_id = Subject.objects.filter(subject=self.subject)
+        course_ids = Gradebook.objects.filter(subject_id__in=subject_id).values('course_id')
+        course = Course.objects.filter(id__in=course_ids)
+        return course
 
 class Assignment(models.Model):
     assignment = models.CharField(max_length=100)
@@ -119,3 +125,4 @@ class Gradebook(models.Model):
 
     def __str__(self):
         return f'{self.student} has got {self.grade} in {self.subject} for {self.assignment}'
+

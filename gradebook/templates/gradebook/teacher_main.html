@@ -4,13 +4,34 @@
 
 <h1> Hi teacher {{user.first_name}} {{user.last_name}} </h1>
 
+<p> Your subjects and classes </p>
+
+{% if subject_list %}
+<ul>
+    {% for subject in subject_list %}
+        <li> {{subject}} </li>
+            <ul>
+                {% for course in subject.subject_course %}
+                    <li> {{course}} </li>
+                {% endfor %} 
+            </ul>
+
+    {% endfor %}
+</ul>
+
+{% else %}
+    <p> Please add subjects and classes you are teaching to get started </p>
+
+{% endif %}
 
 
+<p> <a href="{% url 'teacher:teacher_add_subject' %}"> Add subjects </a>  </p>
 
-<p> <a href="{% url 'teacher:teacher_add_subject' %}"> Add your subjects </a>  </p>
+<p> <a href="{% url 'teacher:teacher_add_course' %}"> Add classes </a>  </p>
 
-<p> <a href="{% url 'teacher:teacher_add_course' %}"> Add courses you are teaching </a>  </p>
-
-
+{% if user.is_authenticated %}
+<br>
+<a href="{% url 'logout' %}?next={% url 'homepage' %}">Log Out</a>
+{% endif %}
 
 {% endblock %}
