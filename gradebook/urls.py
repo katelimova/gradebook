@@ -2,6 +2,7 @@ from gradebook.forms import AddCourseForm
 from django.urls import path, include, reverse_lazy
 from django.contrib import admin
 from .views import gradebook, student, teacher, ed_admin
+from django.contrib.auth.views import LoginView
 
 
 
@@ -9,7 +10,8 @@ from .views import gradebook, student, teacher, ed_admin
 urlpatterns = [ 
     path('', gradebook.HomePageView.as_view(), name='homepage'),
     path('accounts/', include('django.contrib.auth.urls')),
-    path('accounts/signup/', gradebook.SignUpView.as_view(), name='signup'), #general signup to choose role
+    path('accounts/signup/', gradebook.SignUpView.as_view(), name='signup'), #general signup to set user role
+    path('accounts/profile/', gradebook.profile, name='profile'),  #url for login_redirect
 
     path('student/', include(([
         path('signup/', student.signup, name='student_signup'),

@@ -1,11 +1,11 @@
 from django.template.defaultfilters import slugify
 from django.views.generic.edit import CreateView
 from django.shortcuts import redirect, render, get_object_or_404
-from django.views.generic.detail import DetailView
+from django.views.generic import DetailView, ListView, TemplateView
 from gradebook.forms import RegistrationForm, AddCourseForm
 from django.contrib import messages
 from gradebook.models import Course, Faculty, Student, User
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -29,13 +29,12 @@ def signup(request):
             course.save()
 
             user = form.save(commit=False)
-            user.save()
-
             first_name = form.cleaned_data['first_name']
             last_name = form.cleaned_data['last_name']
+            user.slug = slugify(f'{first_name, last_name}') 
+            user.save()
 
-            slug = slugify(f'{first_name, last_name}')            
-            student = Student.objects.create(user=user, course=course, slug=slug)
+            student = Student.objects.create(user=user, course=course)
             student.save()
             form.save_m2m()
             form_course.save_m2m()
@@ -45,7 +44,7 @@ def signup(request):
             user = authenticate(email=email, password=password)
             login(request, user)
 
-            return redirect('homepage')
+            return redirect(reverse('student:student_main', args=[request.user.slug]))
     else:
         form = RegistrationForm()
         form_course = AddCourseForm()
@@ -53,7 +52,6 @@ def signup(request):
     return render(request, 'registration/student_signup.html', {'form': form, 'form_course': form_course})
 
 
-class StudentMainView(LoginRequiredMixin, DetailView):
-    model = Student
+class StudentMainView(LoginRequiredMixin, TemplateView):
     template_name = 'gradebook/student_main.html'
 

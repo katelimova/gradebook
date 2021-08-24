@@ -12,7 +12,6 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.template.defaultfilters import slugify
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
-from itertools import chain
 
 
 def signup(request):
@@ -21,13 +20,12 @@ def signup(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.role = User.TEACHER
-            user.save()
-
             first_name = form.cleaned_data['first_name']
             last_name = form.cleaned_data['last_name']
-            slug = slugify(f'{first_name, last_name}')
+            user.slug = slugify(f'{first_name, last_name}')
+            user.save()
 
-            teacher = Teacher.objects.create(user=user, slug=slug) 
+            teacher = Teacher.objects.create(user=user)
             teacher.save()
 
             email = form.cleaned_data['email']
@@ -35,30 +33,26 @@ def signup(request):
             user = authenticate(email=email, password=password)
             login(request, user)
 
-        return redirect('homepage')
+        return redirect(reverse('teacher:teacher_main', args=[request.user.slug]))
 
     else:
         form = RegistrationForm()
     return render(request, 'registration/teacher_signup.html', {'form': form})
 
-class TeacherMainView(LoginRequiredMixin, TemplateView):
+class TeacherMainView(LoginRequiredMixin, ListView):
     template_name = 'gradebook/teacher_main.html'
-
-    def get_context_data(self, **kwargs):
-        context_data = super().get_context_data(**kwargs)
+    def get_queryset(self):
         teacher = Teacher.objects.filter(user=self.request.user)
         subject_ids = Gradebook.objects.filter(teacher__in=teacher).values('subject_id')
-        context_data['subject_list'] = Subject.objects.filter(id__in=subject_ids)
-        return context_data
+        queryset = Subject.objects.filter(id__in=subject_ids)
+        return queryset
 
-    
 class AddSubjectsView(LoginRequiredMixin, FormView):
     template_name = 'gradebook/teacher_add_subject.html'
     form_class = AddSubjectForm
 
     def get_success_url(self):
-        teacher = Teacher.objects.get(user=self.request.user)
-        return reverse_lazy('teacher:teacher_main', args=[teacher.slug])
+        return reverse('teacher:teacher_main', args=[self.request.user.slug])
 
     def form_valid(self, form):
         subject = form.save(commit=False)
@@ -98,7 +92,7 @@ def course_add(request):
             course_record.save()
             form.save_m2m()     
 
-        return redirect(reverse_lazy('teacher:teacher_main', args=[teacher.slug]))
+        return redirect(reverse_lazy('teacher:teacher_main', args=[request.user.slug]))
 
     else:
         form = TeacherAddCourseForm(request.user)

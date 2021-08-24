@@ -11,7 +11,7 @@
     {% for subject in subject_list %}
         <li> {{subject}} </li>
             <ul>
-                {% for course in subject.subject_course %}
+                {% for course in subject.courses_of_subject %}
                     <li> {{course}} </li>
                 {% endfor %} 
             </ul>

@@ -44,6 +44,7 @@ class User(AbstractUser):
         (ED_ADMIN, 'education administrator'),
     )
     role = models.PositiveIntegerField(choices=ROLES, default=STUDENT)
+    slug = models.SlugField(unique=True)
 
     def __str__(self):
         return f' {self.email}, {self.get_role_display()}'
@@ -54,7 +55,6 @@ class Student(models.Model):
     course = models.ForeignKey('Course', on_delete=models.CASCADE)
     subjects = models.ManyToManyField('Subject', through='Gradebook')
     teachers = models.ManyToManyField('Teacher', through='Gradebook')
-    slug = models.SlugField(unique=True)
     # class Meta:
     #     ordering = ['lastname']
     #     unique_together = [['firstname', 'lastname', 'course']]
@@ -65,7 +65,6 @@ class Student(models.Model):
 
 class Teacher(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    slug = models.SlugField(unique=True, default='')
     subjects = models.ManyToManyField('Subject', through='Gradebook')
     students = models.ManyToManyField('Student', through='Gradebook')
     courses = models.ManyToManyField('Course', through='Gradebook')
@@ -99,7 +98,7 @@ class Subject(models.Model):
     def __str__(self):
         return self.subject
 
-    def subject_course(self):
+    def courses_of_subject(self):
         subject_id = Subject.objects.filter(subject=self.subject)
         course_ids = Gradebook.objects.filter(subject_id__in=subject_id).values('course_id')
         course = Course.objects.filter(id__in=course_ids)
