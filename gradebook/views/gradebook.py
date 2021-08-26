@@ -15,9 +15,9 @@ class SignUpView(TemplateView):
 @login_required
 def profile(request):
     if request.user.role == User.STUDENT:
-        return HttpResponseRedirect(reverse('student:student_main', args=[request.user.slug]))
+        return HttpResponseRedirect(reverse('student:main', args=[request.user.slug]))
     elif request.user.role == User.TEACHER:
-        return HttpResponseRedirect(reverse('teacher:teacher_main', args=[request.user.slug]))
+        return HttpResponseRedirect(reverse('teacher:main', args=[request.user.slug]))
     else:
         return HttpResponseRedirect('homepage')
 

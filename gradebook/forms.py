@@ -14,21 +14,21 @@ class RegistrationForm(UserCreationForm):
         model = User
         fields = ['first_name', 'last_name', 'email', 'password1', 'password2']
 
-class AddSubjectForm(ModelForm):
+class SubjectForm(ModelForm):
     class Meta:
         model = Subject
         fields = ['subject']
 
-class AddCourseForm(ModelForm):
+class StudentCourseForm(ModelForm):
     class Meta:
         model = Course
         fields = ['faculty', 'year', 'group']
 
 
-class TeacherAddCourseForm(AddCourseForm):
+class TeacherCourseForm(StudentCourseForm):
     def __init__(self, user, *args, **kwargs):
         self.user = user
-        super(TeacherAddCourseForm, self).__init__(*args, **kwargs)
+        super(TeacherCourseForm, self).__init__(*args, **kwargs)
         teacher = Teacher.objects.filter(user=user)
         subject_ids = Gradebook.objects.filter(teacher__in=teacher).values('subject_id')
         self.fields['subject'].queryset = Subject.objects.filter(id__in=subject_ids)

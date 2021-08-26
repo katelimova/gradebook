@@ -9,12 +9,14 @@
 {% if subject_list %}
 <ul>
     {% for subject in subject_list %}
-        <li> {{subject}} </li>
+        <li> {{subject}} | <a href="{% url 'teacher:subject_update' subject.id %}"> Update 
+            | <a href="{% url 'teacher:subject_delete' subject.id %}"> Delete </a> </li>
             <ul>
                 {% for course in subject.courses_of_subject %}
                     <li> {{course}} </li>
                 {% endfor %} 
             </ul>
+            <br>
 
     {% endfor %}
 </ul>
@@ -25,9 +27,9 @@
 {% endif %}
 
 
-<p> <a href="{% url 'teacher:teacher_add_subject' %}"> Add subjects </a>  </p>
+<p> <a href="{% url 'teacher:subject_add' %}"> Add subjects </a>  </p>
 
-<p> <a href="{% url 'teacher:teacher_add_course' %}"> Add classes </a>  </p>
+<p> <a href="{% url 'teacher:course_add' %}"> Add classes </a>  </p>
 
 {% if user.is_authenticated %}
 <br>

@@ -1,10 +1,6 @@
-from gradebook.forms import AddCourseForm
-from django.urls import path, include, reverse_lazy
+from django.urls import path, include
 from django.contrib import admin
 from .views import gradebook, student, teacher, ed_admin
-from django.contrib.auth.views import LoginView
-
-
 
 
 urlpatterns = [ 
@@ -14,17 +10,18 @@ urlpatterns = [
     path('accounts/profile/', gradebook.profile, name='profile'),  #url for login_redirect
 
     path('student/', include(([
-        path('signup/', student.signup, name='student_signup'),
-        path('<slug:slug>', student.StudentMainView.as_view(), name='student_main'),
+        path('signup/', student.signup, name='signup'),
+        path('<slug:slug>', student.StudentMainView.as_view(), name='main'),
     ], 'gradebook'), namespace = 'student')),
 
     path('teacher/', include(([
-        path('signup/', teacher.signup, name='teacher_signup'),
-        path('<slug:slug>', teacher.TeacherMainView.as_view(), name='teacher_main'),
-        path('course/add/', teacher.course_add, name='teacher_add_course'),
-        path('subject/add/', teacher.AddSubjectsView.as_view(), name='teacher_add_subject'),
+        path('signup/', teacher.signup, name='signup'),
+        path('<slug:slug>', teacher.TeacherMainView.as_view(), name='main'),
+        path('course/add/', teacher.course_add, name='course_add'),
+        path('subject/add/', teacher.SubjectAddView.as_view(), name='subject_add'),
+        path('subject/update/<int:pk>', teacher.subject_update, name='subject_update'),
+        path('subject/delete/<int:pk>', teacher.subject_delete, name='subject_delete')
     ], 'gradebook'), namespace = 'teacher')),
-
 ]
 
 
