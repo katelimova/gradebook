@@ -12,6 +12,11 @@
         {% block content %} 
         
         {% endblock %}
+
+        {% if user.is_authenticated %}
+            <br>
+            <a href="{% url 'logout' %}?next={% url 'homepage' %}">Log Out</a>
+        {% endif %}
     </body>
 
 </html>

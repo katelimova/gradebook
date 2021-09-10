@@ -83,6 +83,9 @@ class Course(models.Model):
     faculty = models.ForeignKey('Faculty', on_delete=models.CASCADE)
     year = models.PositiveIntegerField(choices=YEAR_OF_STUDY, default=1)
     group = models.PositiveIntegerField()
+
+    subjects = models.ManyToManyField('Subject', through='Gradebook')
+
     def __str__(self):
         return f'{self.year} year, {self.group} group, faculty of {self.faculty}'
 
@@ -95,14 +98,14 @@ class Faculty(models.Model):
 
 class Subject(models.Model):
     subject = models.CharField(max_length=100)
+    courses = models.ManyToManyField('Course', through='Gradebook')
     def __str__(self):
         return self.subject
 
     def courses_of_subject(self):
         subject_id = Subject.objects.filter(subject=self.subject)
         course_ids = Gradebook.objects.filter(subject_id__in=subject_id).values('course_id')
-        course = Course.objects.filter(id__in=course_ids)
-        return course
+        return Course.objects.filter(id__in=course_ids).order_by('year')
 
 class Assignment(models.Model):
     assignment = models.CharField(max_length=100)

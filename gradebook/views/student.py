@@ -2,7 +2,7 @@ from django.template.defaultfilters import slugify
 from django.views.generic.edit import CreateView
 from django.shortcuts import redirect, render, get_object_or_404
 from django.views.generic import DetailView, ListView, TemplateView
-from gradebook.forms import RegistrationForm, StudentCourseForm
+from gradebook.forms import RegistrationForm, CourseForm
 from django.contrib import messages
 from gradebook.models import Course, Faculty, Student, User
 from django.urls import reverse_lazy, reverse
@@ -13,7 +13,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 def signup(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
-        form_course = StudentCourseForm(request.POST)
+        form_course = CourseForm(request.POST)
 
         if form.is_valid() and form_course.is_valid():
             course = form_course.save(commit=False)
@@ -47,7 +47,7 @@ def signup(request):
             return redirect(reverse('student:main', args=[request.user.slug]))
     else:
         form = RegistrationForm()
-        form_course = StudentCourseForm()
+        form_course = CourseForm()
 
     return render(request, 'registration/student_signup.html', {'form': form, 'form_course': form_course})
 

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1> Update course for {{subject}} </h1>
+
+
+<form method="POST">
+{% csrf_token %}
+
+{{form.as_p}}
+
+<button type="submit">Submit</button>
+
+<p> <a href="{% url 'teacher:subject_add' %}"> Add subject </a> </p>
+
+</form>
+{% endblock %}
+
+
+
+

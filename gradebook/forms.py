@@ -19,13 +19,13 @@ class SubjectForm(ModelForm):
         model = Subject
         fields = ['subject']
 
-class StudentCourseForm(ModelForm):
+class CourseForm(ModelForm):
     class Meta:
         model = Course
         fields = ['faculty', 'year', 'group']
 
 
-class TeacherCourseForm(StudentCourseForm):
+class TeacherCourseForm(CourseForm):
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super(TeacherCourseForm, self).__init__(*args, **kwargs)

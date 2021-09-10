@@ -7,7 +7,7 @@ from django.db import models
 from django.http import request
 from django.views.generic import View, ListView, DetailView, TemplateView, UpdateView
 from django.views.generic.edit import DeleteView, FormView
-from gradebook.forms import RegistrationForm, SubjectForm, TeacherCourseForm
+from gradebook.forms import RegistrationForm, SubjectForm, TeacherCourseForm, CourseForm
 from gradebook.models import Course, Subject, User, Teacher, Gradebook
 from django.shortcuts import get_list_or_404, get_object_or_404, render, redirect
 from django.template.defaultfilters import slugify
@@ -42,7 +42,7 @@ class TeacherMainView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         teacher = Teacher.objects.filter(user=self.request.user)
         subject_ids = Gradebook.objects.filter(teacher__in=teacher).values('subject_id')
-        queryset = Subject.objects.filter(id__in=subject_ids)
+        queryset = Subject.objects.filter(id__in=subject_ids).order_by('subject')
         return queryset
 
 class SubjectAddView(LoginRequiredMixin, FormView):
@@ -97,6 +97,7 @@ def course_add(request):
             )[0]
             subject = Subject.objects.get(subject=form.cleaned_data['subject'])
             teacher = Teacher.objects.get(user=request.user)
+    
             try:
                 course_record = Gradebook.objects.get(teacher=teacher, subject=subject, course=None)
                 course_record.course = course  
@@ -109,8 +110,37 @@ def course_add(request):
         form = TeacherCourseForm(request.user)
     return render(request, 'gradebook/teacher/course_form.html', {'form': form})
 
+@login_required
+def course_update(request, subject_pk, course_pk):
+    course = get_object_or_404(Course, pk=course_pk)
+    subject = get_object_or_404(Subject, pk=subject_pk)
+    if request.method == 'POST':
+        form = CourseForm(request.POST, instance=course)
+        if form.is_valid():
+            new_course = Course.objects.get_or_create(
+                faculty=form.cleaned_data['faculty'],
+                year = form.cleaned_data['year'],
+                group = form.cleaned_data['group'],
+                )[0]
+            teacher = Teacher.objects.get(user=request.user)
+            
+            course_record = Gradebook.objects.filter(course=course, subject=subject, teacher=teacher)
+            course_record.update(course=new_course)
+        return redirect(reverse('teacher:main', args=[request.user.slug]))
+    else:
+        form = CourseForm(instance=course)
+    return render(request, 'gradebook/teacher/course_update.html', {'form': form, 'subject': subject})
 
-
+@login_required
+def course_delete(request, subject_pk, course_pk):
+    course = get_object_or_404(Course, pk=course_pk)
+    subject = get_object_or_404(Subject, pk=subject_pk)
+    teacher = Teacher.objects.get(user=request.user)
+    
+    if request.method == 'POST':
+        Gradebook.objects.filter(course=course, subject=subject, teacher=teacher).delete()
+        return redirect(reverse('teacher:main', args=[request.user.slug]))
+    return render(request, 'gradebook/teacher/course_confirm_delete.html', {'course': course, 'subject': subject})
 
 
     
