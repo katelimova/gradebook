@@ -23,6 +23,8 @@ urlpatterns = [
         path('subject/delete/<int:pk>', teacher.subject_delete, name='subject_delete'),
         path('subject/<int:subject_pk>/course/update/<int:course_pk>', teacher.course_update, name='course_update'),
         path('subject/<int:subject_pk>/course/delete/<int:course_pk>', teacher.course_delete, name='course_delete'),
+        path('course/<int:course_pk>/students/', teacher.StudentListView.as_view(), name='student_list'),
+        path('course/<int:course_pk>/students/add/', teacher.student_add, name='student_add')
     ], 'gradebook'), namespace = 'teacher')),
 ]
 

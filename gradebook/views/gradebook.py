@@ -4,7 +4,7 @@ from django.shortcuts import redirect, render
 from django.urls.base import reverse_lazy, reverse
 from django.views.generic.base import TemplateView
 from django.contrib import messages
-from gradebook.models import User, Teacher, Student
+from gradebook.models import User
 
 class HomePageView(TemplateView):
     template_name = 'gradebook/homepage.html'

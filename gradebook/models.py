@@ -1,19 +1,21 @@
 from django.db import models
 from django.conf import settings
 from django.urls import reverse
-from django.template.defaultfilters import slugify
+from django.template.defaultfilters import first, slugify
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, password, **extra_fields):
+    def create_user(self, email, password, course=None, **extra_fields):
         if not email:
             raise ValueError('The Email must be set')
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
+        if user.role == User.STUDENT or user.role == User.STUD_REP:
+            user.course = course
         user.save()
         return user
     def create_superuser(self, email, password, **extra_fields):
@@ -25,6 +27,7 @@ class UserManager(BaseUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
         return self.create_user(email, password, **extra_fields)
+
 
 class User(AbstractUser):
     username = None
@@ -44,33 +47,12 @@ class User(AbstractUser):
         (ED_ADMIN, 'education administrator'),
     )
     role = models.PositiveIntegerField(choices=ROLES, default=STUDENT)
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, null=True, blank=True)
     slug = models.SlugField(unique=True)
 
     def __str__(self):
-        return f' {self.email}, {self.get_role_display()}'
+        return f' {self.first_name} {self.last_name}'
 
-
-class Student(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    course = models.ForeignKey('Course', on_delete=models.CASCADE)
-    subjects = models.ManyToManyField('Subject', through='Gradebook')
-    teachers = models.ManyToManyField('Teacher', through='Gradebook')
-    # class Meta:
-    #     ordering = ['lastname']
-    #     unique_together = [['firstname', 'lastname', 'course']]
-
-    def __str__(self):
-        return f' {self.user.first_name}, {self.user.last_name}'
-
-
-class Teacher(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    subjects = models.ManyToManyField('Subject', through='Gradebook')
-    students = models.ManyToManyField('Student', through='Gradebook')
-    courses = models.ManyToManyField('Course', through='Gradebook')
-
-    def __str__(self):
-        return f' {self.user.first_name}, {self.user.last_name}'
 
 class Course(models.Model):
 
@@ -84,8 +66,6 @@ class Course(models.Model):
     year = models.PositiveIntegerField(choices=YEAR_OF_STUDY, default=1)
     group = models.PositiveIntegerField()
 
-    subjects = models.ManyToManyField('Subject', through='Gradebook')
-
     def __str__(self):
         return f'{self.year} year, {self.group} group, faculty of {self.faculty}'
 
@@ -98,7 +78,7 @@ class Faculty(models.Model):
 
 class Subject(models.Model):
     subject = models.CharField(max_length=100)
-    courses = models.ManyToManyField('Course', through='Gradebook')
+
     def __str__(self):
         return self.subject
 
@@ -115,8 +95,8 @@ class Assignment(models.Model):
 
 class Gradebook(models.Model):
     subject = models.ForeignKey('Subject', on_delete=models.CASCADE, null=True, blank=True)
-    student = models.ForeignKey('Student', on_delete=models.CASCADE, null=True, blank=True)
-    teacher =  models.ForeignKey('Teacher', on_delete=models.CASCADE, null=True, blank=True)
+    student = models.ForeignKey('User', on_delete=models.CASCADE, null=True, blank=True, related_name='students')
+    teacher =  models.ForeignKey('User', on_delete=models.CASCADE, null=True, blank=True, related_name='teachers')
     assignment = models.ForeignKey('Assignment', on_delete=models.CASCADE, null=True, blank=True)
     course = models.ForeignKey('Course', on_delete=models.CASCADE, null=True, blank=True)
     grade = models.PositiveIntegerField(

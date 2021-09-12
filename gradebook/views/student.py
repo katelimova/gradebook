@@ -4,7 +4,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.views.generic import DetailView, ListView, TemplateView
 from gradebook.forms import RegistrationForm, CourseForm
 from django.contrib import messages
-from gradebook.models import Course, Faculty, Student, User
+from gradebook.models import Course, Faculty, User
 from django.urls import reverse_lazy, reverse
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -26,16 +26,14 @@ def signup(request):
                 course = Course.objects.get(year=year, group=group, faculty=faculty)
             else:
                 course = Course.objects.create(year=year, group=group, faculty=faculty)
-            course.save()
 
             user = form.save(commit=False)
             first_name = form.cleaned_data['first_name']
             last_name = form.cleaned_data['last_name']
             user.slug = slugify(f'{first_name, last_name}') 
+            user.course = course
             user.save()
 
-            student = Student.objects.create(user=user, course=course)
-            student.save()
             form.save_m2m()
             form_course.save_m2m()
 

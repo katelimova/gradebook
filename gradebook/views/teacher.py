@@ -1,18 +1,16 @@
 from django.contrib.auth import login, authenticate
-from django.db.models.query import QuerySet
-from django.http.response import HttpResponseRedirect
-from django.template import defaultfilters
+from django.http.response import HttpResponse
+from django.forms import modelformset_factory
 from django.urls import reverse_lazy, reverse
-from django.db import models
-from django.http import request
-from django.views.generic import View, ListView, DetailView, TemplateView, UpdateView
+from django.views.generic import View, ListView, DetailView, TemplateView, UpdateView, CreateView
 from django.views.generic.edit import DeleteView, FormView
 from gradebook.forms import RegistrationForm, SubjectForm, TeacherCourseForm, CourseForm
-from gradebook.models import Course, Subject, User, Teacher, Gradebook
-from django.shortcuts import get_list_or_404, get_object_or_404, render, redirect
-from django.template.defaultfilters import slugify
+from gradebook.models import Course, Subject, User, Gradebook
+from django.shortcuts import get_object_or_404, render, redirect
+from django.template.defaultfilters import first, last, slugify
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
+
 
 
 def signup(request):
@@ -25,7 +23,6 @@ def signup(request):
             last_name = form.cleaned_data['last_name']
             user.slug = slugify(f'{first_name, last_name}')
             user.save()
-            Teacher.objects.create(user=user)
 
             email = form.cleaned_data['email']
             password = form.cleaned_data['password1']
@@ -40,8 +37,8 @@ def signup(request):
 class TeacherMainView(LoginRequiredMixin, ListView):
     template_name = 'gradebook/teacher/main.html'
     def get_queryset(self):
-        teacher = Teacher.objects.filter(user=self.request.user)
-        subject_ids = Gradebook.objects.filter(teacher__in=teacher).values('subject_id')
+        teacher = get_object_or_404(User, id=self.request.user.id)
+        subject_ids = Gradebook.objects.filter(teacher=teacher).values('subject_id')
         queryset = Subject.objects.filter(id__in=subject_ids).order_by('subject')
         return queryset
 
@@ -52,7 +49,7 @@ class SubjectAddView(LoginRequiredMixin, FormView):
         return reverse('teacher:main', args=[self.request.user.slug])
     def form_valid(self, form):
         subject = Subject.objects.get_or_create(subject=form.cleaned_data['subject'])[0]
-        teacher = Teacher.objects.get(user=self.request.user)
+        teacher = get_object_or_404(User, id=self.request.user.id)
         if not Gradebook.objects.filter(teacher=teacher, subject=subject).exists():
             Gradebook.objects.create(teacher=teacher, subject=subject)
         return super().form_valid(form)
@@ -60,11 +57,12 @@ class SubjectAddView(LoginRequiredMixin, FormView):
 @login_required
 def subject_update(request, pk):
     subject = get_object_or_404(Subject, pk=pk)
+    teacher = get_object_or_404(User, id=request.user.id)
     if request.method == 'POST':
         form = SubjectForm(request.POST, instance=subject)
         if form.is_valid():
             new_subject = Subject.objects.get_or_create(subject=form.cleaned_data['subject'])[0]
-            teacher = Teacher.objects.get(user=request.user)
+            
             subject_record = Gradebook.objects.filter(subject=subject, teacher=teacher)
             subject_record.update(subject=new_subject)
         return redirect(reverse('teacher:main', args=[request.user.slug]))
@@ -76,7 +74,7 @@ def subject_update(request, pk):
 @login_required
 def subject_delete(request, pk):
     subject = get_object_or_404(Subject, pk=pk)
-    teacher = Teacher.objects.get(user=request.user)
+    teacher = get_object_or_404(User, id=request.user.id)
     if request.method == 'POST':
         subject_records = Gradebook.objects.filter(subject=subject, teacher=teacher)
         subject_records.delete()
@@ -86,6 +84,7 @@ def subject_delete(request, pk):
 
 @login_required
 def course_add(request):
+    teacher = get_object_or_404(User, id=request.user.id)
     if request.method == "POST":
         form = TeacherCourseForm(request.user, request.POST)
         if form.is_valid():
@@ -96,7 +95,6 @@ def course_add(request):
             faculty=form.cleaned_data['faculty']
             )[0]
             subject = Subject.objects.get(subject=form.cleaned_data['subject'])
-            teacher = Teacher.objects.get(user=request.user)
     
             try:
                 course_record = Gradebook.objects.get(teacher=teacher, subject=subject, course=None)
@@ -114,6 +112,7 @@ def course_add(request):
 def course_update(request, subject_pk, course_pk):
     course = get_object_or_404(Course, pk=course_pk)
     subject = get_object_or_404(Subject, pk=subject_pk)
+    teacher = get_object_or_404(User, id=request.user.id)
     if request.method == 'POST':
         form = CourseForm(request.POST, instance=course)
         if form.is_valid():
@@ -122,7 +121,6 @@ def course_update(request, subject_pk, course_pk):
                 year = form.cleaned_data['year'],
                 group = form.cleaned_data['group'],
                 )[0]
-            teacher = Teacher.objects.get(user=request.user)
             
             course_record = Gradebook.objects.filter(course=course, subject=subject, teacher=teacher)
             course_record.update(course=new_course)
@@ -135,7 +133,7 @@ def course_update(request, subject_pk, course_pk):
 def course_delete(request, subject_pk, course_pk):
     course = get_object_or_404(Course, pk=course_pk)
     subject = get_object_or_404(Subject, pk=subject_pk)
-    teacher = Teacher.objects.get(user=request.user)
+    teacher = get_object_or_404(User, id=request.user.id)
     
     if request.method == 'POST':
         Gradebook.objects.filter(course=course, subject=subject, teacher=teacher).delete()
@@ -143,4 +141,29 @@ def course_delete(request, subject_pk, course_pk):
     return render(request, 'gradebook/teacher/course_confirm_delete.html', {'course': course, 'subject': subject})
 
 
-    
+class StudentListView(LoginRequiredMixin, View):
+    template_name = 'gradebook/teacher/student_list.html'
+    def get(self, request, course_pk):
+        course = get_object_or_404(Course, pk=course_pk)
+        student_list = User.objects.filter(course=course).order_by('last_name')
+        return render(request, self.template_name, {'student_list': student_list, 'course': course})
+
+
+def student_add(request, course_pk):
+    StudentFormSet = modelformset_factory(User, fields=('first_name', 'last_name', 'email'), extra=10)
+    course = get_object_or_404(Course, pk=course_pk)
+    if request.method == 'POST':
+        formset = StudentFormSet(request.POST, queryset=User.objects.filter(course=course_pk))
+        if formset.is_valid():
+            students = formset.save(commit=False)
+            for student in students:
+                student.course = course
+                first_name = student.first_name
+                last_name = student.last_name
+                student.slug = slugify(f'{first_name, last_name}')
+                student.save()
+            return redirect(reverse('teacher:main', args=[request.user.slug]))
+    else:
+        formset = StudentFormSet(queryset=User.objects.filter(course=course_pk))
+    return render(request,'gradebook/teacher/student_add_form.html', {'formset': formset, 'course': course})
+

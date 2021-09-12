@@ -3,10 +3,13 @@ from django.db import models
 from django.db.models import fields
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import subclasses
+from django.forms import modelformset_factory, formset_factory, BaseModelFormSet
 from django.forms.models import ModelForm
 from django.contrib.auth.forms import UserCreationForm
 from django.http import request
-from .models import Subject, User, Student, Teacher, Course, Faculty, Gradebook 
+from django.shortcuts import get_object_or_404
+from .models import Subject, User, Course, Faculty, Gradebook 
+from django.template.defaultfilters import slugify
 
 
 class RegistrationForm(UserCreationForm):
@@ -29,8 +32,8 @@ class TeacherCourseForm(CourseForm):
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super(TeacherCourseForm, self).__init__(*args, **kwargs)
-        teacher = Teacher.objects.filter(user=user)
-        subject_ids = Gradebook.objects.filter(teacher__in=teacher).values('subject_id')
+        teacher = get_object_or_404(User, id=user.id)
+        subject_ids = Gradebook.objects.filter(teacher=teacher).values('subject_id')
         self.fields['subject'].queryset = Subject.objects.filter(id__in=subject_ids)
 
     subject = forms.ModelChoiceField(queryset=None, help_text='Choose one of your subjects')

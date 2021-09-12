@@ -14,7 +14,9 @@
             <ul>
                 {% for course in subject.courses_of_subject %}
                     <li> {{course}} | <a href="{% url 'teacher:course_update' subject.id course.id %}"> Update 
-                    | <a href="{% url 'teacher:course_delete' subject.id course.id %}"> Delete </a> </li>
+                    | <a href="{% url 'teacher:course_delete' subject.id course.id %}"> Delete </a> 
+                    <br> <a href="{% url 'teacher:student_list' course.id %}"> See students </a>
+                </li>
                 {% endfor %} 
             </ul>
             <br>
