@@ -1,10 +1,9 @@
 from django.db import models
-from django.conf import settings
 from django.urls import reverse
-from django.template.defaultfilters import first, slugify
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
+from django.utils.functional import cached_property
 
 
 class UserManager(BaseUserManager):
@@ -53,6 +52,13 @@ class User(AbstractUser):
     def __str__(self):
         return f' {self.first_name} {self.last_name}'
 
+    @cached_property
+    def get_absolute_url(self):
+        if self.role == User.TEACHER:
+            return reverse('teacher_main', kwargs={'slug':self.slug})
+        elif self.role == User.STUDENT:
+            return reverse('student:main', kwargs={'slug':self.slug})
+    
 
 class Course(models.Model):
 
@@ -68,6 +74,10 @@ class Course(models.Model):
 
     def __str__(self):
         return f'{self.year} year, {self.group} group, faculty of {self.faculty}'
+
+    @cached_property
+    def get_absolute_url(self):
+        return f'course/{self.pk}/' 
 
 class Faculty(models.Model):
     faculty = models.CharField(max_length=100)
@@ -86,6 +96,10 @@ class Subject(models.Model):
         subject_id = Subject.objects.filter(subject=self.subject)
         course_ids = Gradebook.objects.filter(subject_id__in=subject_id).values('course_id')
         return Course.objects.filter(id__in=course_ids).order_by('year')
+
+    @cached_property
+    def get_absolute_url(self):
+        return f'subject/{self.pk}/' 
 
 class Assignment(models.Model):
     assignment = models.CharField(max_length=100)
@@ -107,4 +121,3 @@ class Gradebook(models.Model):
 
     def __str__(self):
         return f'{self.student} has got {self.grade} in {self.subject} for {self.assignment}'
-

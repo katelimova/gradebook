@@ -12,7 +12,7 @@
 <button type='submit'>Submit</button>
 
 
-<p> <a href="{% url 'teacher:course_add' %}"> Add class you are teaching </a> </p>
+<p> <a href="{% url 'teacher:course_add' user.slug %}"> Add class you are teaching </a> </p>
 
 </form>
 {% endblock %}

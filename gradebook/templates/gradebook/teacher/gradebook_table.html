@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+<style type="text/css">
+    table {
+      border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid black;
+        padding: 5px;
+    }
+</style>
+
+<h1> Students' grades </h1>
+<h2> Class: {{course}} </h2>
+<h2> Subject: {{subject}} </h2>
+
+
+<form method="POST">
+    {% csrf_token %}
+    {{task_form}}
+<input type="submit" value = "Add"/>
+</form>
+
+<br>
+
+{% if student_list %}
+    <table> 
+        <tr> 
+            <th> № </th>
+            <th> Student </th>
+
+            {% if assignment_list %}
+                {% for assignment in assignment_list %}
+                    <th>
+                        {{assignment}}
+                    </th>
+                {% endfor %}
+            {% endif %}
+          
+        </tr>
+
+        {% for student in student_list %}
+        <tr> 
+            <td> {{ forloop.counter }}. </td>
+            <td> {{student}} </td>
+
+            {% for _ in assignment_list %}
+                <td>
+                </td>
+                
+            {% endfor %}
+            
+        </tr>
+    
+
+    {% endfor %}
+</table>
+{% else %}
+    <p> There are no students in this course </p>  
+
+{% endif %}
+
+<p> <a href="{% url 'teacher:student_edit' user.slug course.id %}"> Edit student list in class: {{course}} </a> </p> 
+
+{% endblock %}
