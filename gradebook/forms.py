@@ -8,7 +8,7 @@ from django.forms.models import ModelForm
 from django.contrib.auth.forms import UserCreationForm
 from django.http import request
 from django.shortcuts import get_object_or_404
-from .models import Subject, User, Course, Faculty, Gradebook 
+from .models import Assignment, Subject, User, Course, Faculty, Gradebook 
 from django.template.defaultfilters import slugify
 
 
@@ -38,4 +38,20 @@ class TeacherCourseForm(CourseForm):
 
     subject = forms.ModelChoiceField(queryset=None, help_text='Choose one of your subjects')
     fields = ['subject','faculty', 'year', 'group']
+
     
+class AssignmentForm(ModelForm):
+    class Meta:
+        model = Assignment
+        fields = ['assignment']
+        labels = {'assignment': 'New assignment'}
+
+class GradeForm(ModelForm):
+    class Meta:
+        model = Gradebook
+        fields = ('grade',)
+
+class StudentForm(ModelForm):
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name', 'email',)

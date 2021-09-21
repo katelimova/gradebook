@@ -17,7 +17,7 @@ def profile(request):
     if request.user.role == User.STUDENT:
         return HttpResponseRedirect(reverse('student:main', args=[request.user.slug]))
     elif request.user.role == User.TEACHER:
-        return HttpResponseRedirect(reverse('teacher:main', args=[request.user.slug]))
+        return HttpResponseRedirect(reverse('teacher_main', args=[request.user.slug]))
     else:
         return HttpResponseRedirect('homepage')
 
