@@ -8,24 +8,25 @@ from django.forms.models import ModelForm
 from django.contrib.auth.forms import UserCreationForm
 from django.http import request
 from django.shortcuts import get_object_or_404
-from .models import Assignment, Subject, User, Course, Faculty, Gradebook 
+from .models import Task, Subject, User, Course, Faculty, Gradebook 
 from django.template.defaultfilters import slugify
 
 
 class RegistrationForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'password1', 'password2']
+        fields = ('first_name', 'last_name', 'email', 'password1', 'password2',)
 
 class SubjectForm(ModelForm):
     class Meta:
         model = Subject
-        fields = ['subject']
+        fields = ('title',)
+        labels = {'title': 'Subject'}
 
 class CourseForm(ModelForm):
     class Meta:
         model = Course
-        fields = ['faculty', 'year', 'group']
+        fields = ('faculty', 'year', 'group',)
 
 
 class TeacherCourseForm(CourseForm):
@@ -37,14 +38,14 @@ class TeacherCourseForm(CourseForm):
         self.fields['subject'].queryset = Subject.objects.filter(id__in=subject_ids)
 
     subject = forms.ModelChoiceField(queryset=None, help_text='Choose one of your subjects')
-    fields = ['subject','faculty', 'year', 'group']
+    fields = ('subject','faculty', 'year', 'group',)
 
     
-class AssignmentForm(ModelForm):
+class TaskForm(ModelForm):
     class Meta:
-        model = Assignment
-        fields = ['assignment']
-        labels = {'assignment': 'New assignment'}
+        model = Task
+        fields = ('title',)
+        labels = {'title': 'New assignment'}
 
 class GradeForm(ModelForm):
     class Meta:

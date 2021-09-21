@@ -56,7 +56,7 @@ class User(AbstractUser):
     def get_absolute_url(self):
         if self.role == User.TEACHER:
             return reverse('teacher_main', kwargs={'slug':self.slug})
-        elif self.role == User.STUDENT:
+        elif self.role == User.STUDENT or self.role == User.STUD_REP:
             return reverse('student:main', kwargs={'slug':self.slug})
     
 
@@ -80,20 +80,20 @@ class Course(models.Model):
         return f'course/{self.pk}/' 
 
 class Faculty(models.Model):
-    faculty = models.CharField(max_length=100)
+    title = models.CharField(max_length=100)
     class Meta:
         verbose_name_plural = 'Faculties'
     def __str__(self):
-        return self.faculty
+        return self.title
 
 class Subject(models.Model):
-    subject = models.CharField(max_length=100)
+    title = models.CharField(max_length=100)
 
     def __str__(self):
-        return self.subject
+        return self.title
 
     def courses_of_subject(self):
-        subject_id = Subject.objects.filter(subject=self.subject)
+        subject_id = Subject.objects.filter(title=self.title)
         course_ids = Gradebook.objects.filter(subject_id__in=subject_id).values('course_id')
         return Course.objects.filter(id__in=course_ids).order_by('year')
 
@@ -101,17 +101,17 @@ class Subject(models.Model):
     def get_absolute_url(self):
         return f'subject/{self.pk}/' 
 
-class Assignment(models.Model):
-    assignment = models.CharField(max_length=100)
+class Task(models.Model):
+    title = models.CharField(max_length=100)
     def __str__(self):
-        return self.assignment
+        return self.title
 
 
 class Gradebook(models.Model):
     subject = models.ForeignKey('Subject', on_delete=models.CASCADE, null=True, blank=True)
     student = models.ForeignKey('User', on_delete=models.CASCADE, null=True, blank=True, related_name='students')
     teacher =  models.ForeignKey('User', on_delete=models.CASCADE, null=True, blank=True, related_name='teachers')
-    assignment = models.ForeignKey('Assignment', on_delete=models.CASCADE, null=True, blank=True)
+    task = models.ForeignKey('Task', on_delete=models.CASCADE, null=True, blank=True)
     course = models.ForeignKey('Course', on_delete=models.CASCADE, null=True, blank=True)
     grade = models.PositiveIntegerField(
         null=True, blank=True,
@@ -120,4 +120,4 @@ class Gradebook(models.Model):
     )
 
     def __str__(self):
-        return f'{self.student} has got {self.grade} in {self.subject} for {self.assignment}'
+        return f'{self.student} has got {self.grade} in {self.subject} for {self.task}'

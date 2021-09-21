@@ -5,8 +5,8 @@ from django.forms import modelformset_factory
 from django.urls import reverse_lazy, reverse
 from django.views.generic import View, ListView, DetailView, TemplateView, UpdateView, CreateView
 from django.views.generic.edit import DeleteView, FormView
-from gradebook.forms import AssignmentForm, GradeForm, RegistrationForm, StudentForm, SubjectForm, TeacherCourseForm, CourseForm
-from gradebook.models import Assignment, Course, Subject, User, Gradebook
+from gradebook.forms import TaskForm, GradeForm, RegistrationForm, StudentForm, SubjectForm, TeacherCourseForm, CourseForm
+from gradebook.models import Task, Course, Subject, User, Gradebook
 from django.shortcuts import get_list_or_404, get_object_or_404, render, redirect
 from django.template.defaultfilters import first, last, slugify
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -49,7 +49,7 @@ class SubjectAddView(LoginRequiredMixin, FormView):
     def get_success_url(self):
         return reverse('teacher_main', args=[self.request.user.slug])
     def form_valid(self, form):
-        subject = Subject.objects.get_or_create(subject=form.cleaned_data['subject'])[0]
+        subject = Subject.objects.get_or_create(title=form.cleaned_data['subject'])[0]
         teacher = get_object_or_404(User, id=self.request.user.id)
         if not Gradebook.objects.filter(teacher=teacher, subject=subject).exists():
             Gradebook.objects.create(teacher=teacher, subject=subject)
@@ -65,7 +65,7 @@ def subject_update(request, pk, **kwargs):
             new_subject = Subject.objects.get_or_create(subject=form.cleaned_data['subject'])[0]
             
             subject_record = Gradebook.objects.filter(subject=subject, teacher=teacher)
-            subject_record.update(subject=new_subject)
+            subject_record.update(title=new_subject)
         return redirect(reverse('teacher_main', args=[request.user.slug]))
     else:
         form = SubjectForm(instance=subject)
@@ -95,7 +95,7 @@ def course_add(request, **kwargs):
             group=form.cleaned_data['group'],
             faculty=form.cleaned_data['faculty']
             )[0]
-            subject = Subject.objects.get(subject=form.cleaned_data['subject'])
+            subject = Subject.objects.get(title=form.cleaned_data['subject'])
     
             try:
                 course_record = Gradebook.objects.get(teacher=teacher, subject=subject, course=None)
@@ -168,7 +168,7 @@ def student_edit(request, course_pk, **kwargs):
             return redirect(reverse('teacher:student_edit', kwargs={'slug': request.user.slug, 'course_pk': course_pk}))
     else:
         formset = StudentFormSet(queryset=User.objects.filter(course=course))
-    return render(request,'gradebook/teacher/student_edit.html', {'formset': formset, 'course': course})
+    return render(request,'gradebook/teacher/student_formset.html', {'formset': formset, 'course': course})
 
 @login_required
 def student_delete(request, course_pk, student_pk, **kwargs):
@@ -188,34 +188,32 @@ def gradebook(request, subject_pk, course_pk, **kwargs):
     subject = get_object_or_404(Subject, pk=subject_pk)
     teacher = get_object_or_404(User, pk=request.user.id)
     student_list = User.objects.filter(course=course).order_by('last_name')
-    tasks_ids = Gradebook.objects.filter(course=course, subject=subject).values('assignment_id')
-    assignment_list = Assignment.objects.filter(id__in=tasks_ids)
-
-    # GradeFormSet = modelformset_factory(Gradebook, fields=('grade'), extra=len(student_list))
+    tasks_ids = Gradebook.objects.filter(course=course, subject=subject).values('task_id')
+    task_list = Task.objects.filter(id__in=tasks_ids)
 
     if request.method == 'POST':
-        task_form = AssignmentForm(request.POST)
+        task_form = TaskForm(request.POST)
         if task_form.is_valid():
-            assignment = task_form.save(commit=False)
-            Assignment.assignment = assignment
-            assignment.save()
+            task = task_form.save(commit=False)
+            Task.title = task
+            task.save()
 
             try:
-                gb_record = Gradebook.objects.get(course=course, subject=subject, teacher=teacher, assignment=None)
-                gb_record.assignment = assignment
+                gb_record = Gradebook.objects.get(course=course, subject=subject, teacher=teacher, task=None)
+                gb_record.task = task
             except:
                 gb_record = Gradebook.objects.create(
-                    course=course, subject=subject, teacher=teacher, assignment=assignment
+                    course=course, subject=subject, teacher=teacher, task=task
                     )
             gb_record.save()
             kwargs = {'slug': request.user.slug, 'subject_pk': subject_pk, 'course_pk': course_pk}
             return redirect(reverse('teacher:gradebook', kwargs))
 
     else:
-        task_form = AssignmentForm()
+        task_form = TaskForm()
         
     ctx = {'student_list': student_list, 'course': course, 'subject': subject, 'task_form': task_form,
-        'assignment_list': assignment_list
+        'task_list': task_list
     }
     return render(request, 'gradebook/teacher/gradebook_table.html', ctx)
 

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, Faculty, Subject, Gradebook, Assignment
+from .models import Course, Faculty, Subject, Gradebook, Task
 from django.contrib.auth.admin import UserAdmin
 from .models import User
 
@@ -26,7 +26,7 @@ admin.site.register(Course)
 admin.site.register(Faculty)
 admin.site.register(Subject)
 admin.site.register(Gradebook)
-admin.site.register(Assignment)
+admin.site.register(Task)
 admin.site.register(User, CustomUserAdmin)
 
 

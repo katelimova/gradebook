@@ -32,10 +32,10 @@
             <th> № </th>
             <th> Student </th>
 
-            {% if assignment_list %}
-                {% for assignment in assignment_list %}
+            {% if task_list %}
+                {% for task in task_list %}
                     <th>
-                        {{assignment}}
+                        {{task}}
                     </th>
                 {% endfor %}
             {% endif %}
@@ -47,7 +47,7 @@
             <td> {{ forloop.counter }}. </td>
             <td> {{student}} </td>
 
-            {% for _ in assignment_list %}
+            {% for _ in task_list %}
                 <td>
                 </td>
                 
@@ -63,6 +63,6 @@
 
 {% endif %}
 
-<p> <a href="{% url 'teacher:student_edit' user.slug course.id %}"> Edit student list in class: {{course}} </a> </p> 
+<p> <a href="{% url 'teacher:student_edit' user.slug course.id %}"> Add or edit student list in class: {{course}} </a> </p> 
 
 {% endblock %}
