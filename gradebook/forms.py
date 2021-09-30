@@ -3,7 +3,7 @@ from django.db import models
 from django.db.models import fields
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import subclasses
-from django.forms import modelformset_factory, formset_factory, BaseModelFormSet
+from django.forms import modelformset_factory, formset_factory, BaseModelFormSet, BaseFormSet
 from django.forms.models import ModelForm
 from django.contrib.auth.forms import UserCreationForm
 from django.http import request
@@ -47,12 +47,17 @@ class TaskForm(ModelForm):
         fields = ('title',)
         labels = {'title': 'New assignment'}
 
+
 class GradeForm(ModelForm):
     class Meta:
         model = Gradebook
-        fields = ('grade',)
+        fields = ('grade', 'student', 'task',)
 
-class StudentForm(ModelForm):
-    class Meta:
-        model = User
-        fields = ('first_name', 'last_name', 'email',)
+    def __init__(self, teacher, subject, course, *args, **kwargs):
+        self.teacher = teacher
+        self.course = course
+        self.subject = subject
+        super().__init__(*args, **kwargs)
+        self.fields['student'].widget = forms.HiddenInput()
+        self.fields['task'].widget = forms.HiddenInput()
+

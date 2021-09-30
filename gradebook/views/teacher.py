@@ -1,14 +1,15 @@
 from django.contrib.auth import login, authenticate
+from django.forms.formsets import BaseFormSet, formset_factory
 from django.http import HttpRequest
 from django.http.response import HttpResponse
-from django.forms import modelformset_factory
-from django.urls import reverse_lazy, reverse
+from django.forms import modelformset_factory, formset_factory
+from django.urls import reverse
 from django.views.generic import View, ListView, DetailView, TemplateView, UpdateView, CreateView
 from django.views.generic.edit import DeleteView, FormView
-from gradebook.forms import TaskForm, GradeForm, RegistrationForm, StudentForm, SubjectForm, TeacherCourseForm, CourseForm
+from gradebook.forms import TaskForm, RegistrationForm, SubjectForm, TeacherCourseForm, CourseForm, GradeForm
 from gradebook.models import Task, Course, Subject, User, Gradebook
 from django.shortcuts import get_list_or_404, get_object_or_404, render, redirect
-from django.template.defaultfilters import first, last, slugify
+from django.template.defaultfilters import slugify
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 
@@ -40,7 +41,7 @@ class TeacherMainView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         teacher = get_object_or_404(User, id=self.request.user.id)
         subject_ids = Gradebook.objects.filter(teacher=teacher).values('subject_id')
-        queryset = Subject.objects.filter(id__in=subject_ids).order_by('subject')
+        queryset = Subject.objects.filter(id__in=subject_ids).order_by('title')
         return queryset
 
 class SubjectAddView(LoginRequiredMixin, FormView):
@@ -49,10 +50,9 @@ class SubjectAddView(LoginRequiredMixin, FormView):
     def get_success_url(self):
         return reverse('teacher_main', args=[self.request.user.slug])
     def form_valid(self, form):
-        subject = Subject.objects.get_or_create(title=form.cleaned_data['subject'])[0]
+        subject = Subject.objects.get_or_create(title=form.cleaned_data['title'])[0]
         teacher = get_object_or_404(User, id=self.request.user.id)
-        if not Gradebook.objects.filter(teacher=teacher, subject=subject).exists():
-            Gradebook.objects.create(teacher=teacher, subject=subject)
+        Gradebook.objects.get_or_create(teacher=teacher, subject=subject)
         return super().form_valid(form)
 
 @login_required
@@ -62,10 +62,10 @@ def subject_update(request, pk, **kwargs):
     if request.method == 'POST':
         form = SubjectForm(request.POST, instance=subject)
         if form.is_valid():
-            new_subject = Subject.objects.get_or_create(subject=form.cleaned_data['subject'])[0]
+            new_subject = Subject.objects.get_or_create(title=form.cleaned_data['title'])[0]
             
-            subject_record = Gradebook.objects.filter(subject=subject, teacher=teacher)
-            subject_record.update(title=new_subject)
+            Gradebook.objects.filter(subject=subject, teacher=teacher).update(subject=new_subject)
+
         return redirect(reverse('teacher_main', args=[request.user.slug]))
     else:
         form = SubjectForm(instance=subject)
@@ -77,8 +77,7 @@ def subject_delete(request, pk, **kwargs):
     subject = get_object_or_404(Subject, pk=pk)
     teacher = get_object_or_404(User, id=request.user.id)
     if request.method == 'POST':
-        subject_records = Gradebook.objects.filter(subject=subject, teacher=teacher)
-        subject_records.delete()
+        Gradebook.objects.filter(subject=subject, teacher=teacher).delete()
         return redirect(reverse('teacher_main', args=[request.user.slug]))
     return render(request, 'gradebook/teacher/subject_confirm_delete.html', {'subject': subject})
 
@@ -91,18 +90,16 @@ def course_add(request, **kwargs):
         if form.is_valid():
             course = form.save(commit=False)
             course = Course.objects.get_or_create(
-            year=form.cleaned_data['year'],
-            group=form.cleaned_data['group'],
-            faculty=form.cleaned_data['faculty']
+                year=form.cleaned_data['year'],
+                group=form.cleaned_data['group'],
+                faculty=form.cleaned_data['faculty'],
             )[0]
             subject = Subject.objects.get(title=form.cleaned_data['subject'])
-    
-            try:
-                course_record = Gradebook.objects.get(teacher=teacher, subject=subject, course=None)
-                course_record.course = course  
-            except:
-                course_record = Gradebook.objects.get_or_create(subject=subject, teacher=teacher, course=course)[0]           
-            course_record.save()
+
+            Gradebook.objects.update_or_create(
+                teacher=teacher, subject=subject, course=None,
+                defaults={'course':course},
+            )
             form.save_m2m()     
         return redirect(reverse('teacher_main', args=[request.user.slug]))
     else:
@@ -123,8 +120,7 @@ def course_update(request, subject_pk, course_pk, **kwargs):
                 group = form.cleaned_data['group'],
                 )[0]
             
-            course_record = Gradebook.objects.filter(course=course, subject=subject, teacher=teacher)
-            course_record.update(course=new_course)
+            Gradebook.objects.filter(course=course, subject=subject, teacher=teacher).update(course=new_course)
         return redirect(reverse('teacher_main', args=[request.user.slug]))
     else:
         form = CourseForm(instance=course)
@@ -142,12 +138,12 @@ def course_delete(request, subject_pk, course_pk, **kwargs):
     return render(request, 'gradebook/teacher/course_confirm_delete.html', {'course': course, 'subject': subject})
 
 
-class StudentListView(LoginRequiredMixin, View):
-    template_name = 'gradebook/teacher/student_list.html'
-    def get(self, request, course_pk):
-        course = get_object_or_404(Course, pk=course_pk)
-        student_list = User.objects.filter(course=course).order_by('last_name')
-        return render(request, self.template_name, {'student_list': student_list, 'course': course})
+# class StudentListView(LoginRequiredMixin, View):
+#     template_name = 'gradebook/teacher/student_list.html'
+#     def get(self, request, course_pk):
+#         course = get_object_or_404(Course, pk=course_pk)
+#         student_list = User.objects.filter(course=course).order_by('last_name')
+#         return render(request, self.template_name, {'student_list': student_list, 'course': course})
 
 @login_required
 def student_edit(request, course_pk, **kwargs):
@@ -164,7 +160,8 @@ def student_edit(request, course_pk, **kwargs):
                 last_name = student.last_name
                 student.slug = slugify(f'{first_name, last_name}')
                 student.save()
-                
+                Gradebook.objects.create(course=course, student=student)
+
             return redirect(reverse('teacher:student_edit', kwargs={'slug': request.user.slug, 'course_pk': course_pk}))
     else:
         formset = StudentFormSet(queryset=User.objects.filter(course=course))
@@ -191,29 +188,56 @@ def gradebook(request, subject_pk, course_pk, **kwargs):
     tasks_ids = Gradebook.objects.filter(course=course, subject=subject).values('task_id')
     task_list = Task.objects.filter(id__in=tasks_ids)
 
-    if request.method == 'POST':
-        task_form = TaskForm(request.POST)
-        if task_form.is_valid():
-            task = task_form.save(commit=False)
-            Task.title = task
-            task.save()
+    task_form=TaskForm()
+    GradeFormSet = modelformset_factory(Gradebook, fields=(
+        'grade', 'student', 'task',), max_num=len(student_list), extra=7,
+    )
 
-            try:
-                gb_record = Gradebook.objects.get(course=course, subject=subject, teacher=teacher, task=None)
-                gb_record.task = task
-            except:
-                gb_record = Gradebook.objects.create(
-                    course=course, subject=subject, teacher=teacher, task=task
-                    )
-            gb_record.save()
-            kwargs = {'slug': request.user.slug, 'subject_pk': subject_pk, 'course_pk': course_pk}
-            return redirect(reverse('teacher:gradebook', kwargs))
+    if request.method == 'POST':
+
+        if 'add_task' in request.POST:
+            task_form = TaskForm(request.POST)
+            if task_form.is_valid():
+                task = task_form.save(commit=False)
+                task.save()
+                
+                Gradebook.objects.update_or_create(
+                    course=course, subject=subject, teacher=teacher, task=None,
+                    defaults={'task': task},
+                )
+
+            return redirect(reverse('teacher:gradebook', 
+                    kwargs={'slug': request.user.slug, 'subject_pk': subject_pk, 'course_pk': course_pk})
+                )
+
+        elif 'add_grade' in request.POST:
+            grade_formset = GradeFormSet(request.POST, queryset=None)
+            if grade_formset.is_valid():
+                formset = grade_formset.save(commit=False)
+                for form in formset:
+
+                    stud_record = Gradebook.objects.filter(
+                        course=course, subject=subject, teacher=teacher, task=form.task, student=form.student)
+                    if stud_record.exists():
+                            stud_record.update(grade=form.grade)
+                    else:
+                        Gradebook.objects.filter(
+                            course=course, subject=subject, teacher=teacher, task=form.task,
+                        ).update(grade=form.grade, student=form.student)
+
+                return redirect(reverse('teacher:gradebook', 
+                    kwargs={'slug': request.user.slug, 'subject_pk': subject_pk, 'course_pk': course_pk})
+                )
 
     else:
         task_form = TaskForm()
+        GradeFormSet = formset_factory(GradeForm,
+            extra=(len(task_list)*len(student_list)),
+        )
+        grade_formset = GradeFormSet()
         
     ctx = {'student_list': student_list, 'course': course, 'subject': subject, 'task_form': task_form,
-        'task_list': task_list
+        'task_list': task_list, 'formset': grade_formset,
     }
     return render(request, 'gradebook/teacher/gradebook_table.html', ctx)
 

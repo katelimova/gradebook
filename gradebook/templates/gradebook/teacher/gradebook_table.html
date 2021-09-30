@@ -20,49 +20,54 @@
 
 <form method="POST">
     {% csrf_token %}
-    {{task_form}}
-<input type="submit" value = "Add"/>
+    {{ task_form }}
+<input type="submit" name="add_task" value = "Add"/>
 </form>
 
 <br>
 
-{% if student_list %}
+<form method="POST">
+    {% csrf_token %}
+
+    {{ formset.management_form }}
+
+    
     <table> 
-        <tr> 
+
+
+        <tr>
             <th> № </th>
             <th> Student </th>
-
-            {% if task_list %}
-                {% for task in task_list %}
-                    <th>
-                        {{task}}
-                    </th>
-                {% endfor %}
-            {% endif %}
-          
+            {% for task in task_list %}
+            <th> {{task}} </th>
+            {% endfor %}
         </tr>
+        
+
 
         {% for student in student_list %}
+
         <tr> 
             <td> {{ forloop.counter }}. </td>
-            <td> {{student}} </td>
-
-            {% for _ in task_list %}
-                <td>
-                </td>
-                
-            {% endfor %}
             
+            <td> {{ student}} </td>
+
+
+            {% for i in task_list %}
+                <td> {{form.grade}}</td>
+            {% endfor %}
         </tr>
-    
+        {% endfor %}
 
-    {% endfor %}
-</table>
-{% else %}
-    <p> There are no students in this course </p>  
+     
+    </table>
 
-{% endif %}
+
+<br>
+<input type="submit" name="add_grade" value = "Save"/>
+</form> 
 
 <p> <a href="{% url 'teacher:student_edit' user.slug course.id %}"> Add or edit student list in class: {{course}} </a> </p> 
 
 {% endblock %}
+
